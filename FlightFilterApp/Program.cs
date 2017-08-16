@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using FlightFilterApp.Builders;
 using FlightFilterApp.Entities;
@@ -13,19 +11,27 @@ namespace FlightFilterApp
 {
     class Program
     {
-        private static FlightBuilder _flightBuilder;
+        //Flight builder internally stores state around dates - this means it should probably be treated as a singleton so that dates do not change if run over date barriers
+        private static readonly FlightBuilder FlightBuilder = new FlightBuilder();
+
 
         static void Main(string[] args)
         {
-            //Flight builder internally stores state around dates - this means it should probably be treated as a singleton so that dates do not change if run over date barriers
-            _flightBuilder = new FlightBuilder();
-
+            //Get the list of filters - prehaps one day this could come from a non-hardcoded source or be injected in somehow?
             var filters = GetFilters();
+            var flights = FlightBuilder.GetFlights();
 
-            GetFilteredFlights(filters);
-            
+            //Run filters against list
+            var filteredFlights = GetFilteredFlights(filters, flights);
+
+            //Persist the flights for evaluation / review
+            PersistResults(filteredFlights);
         }
 
+        /// <summary>
+        /// function to fetch the filters
+        /// </summary>
+        /// <returns>list of tests to run when filtering</returns>
         private static List<Func<Flight, bool>> GetFilters()
         {
             DateTime nowTime = DateTime.Now;
@@ -37,27 +43,36 @@ namespace FlightFilterApp
                 //2. Have a segment with an arrival date before the departure date.
                 flight => flight.Segments.Any(seg => seg.ArrivalDate < seg.DepartureDate), 
                 //3. Spend more than 2 hours on the ground. i.e those with a total gap of over two hours between the arrival date of one segment and the departure date of the next.
-                flight => flight.Segments.Any(seg => !CheckGroundStopTimeBetweenSegments(flight.Segments.OrderBy(s => s.DepartureDate).ToList(), seg)) 
+                flight => flight.Segments.Any(seg => !CheckGroundStopTimeBetweenSegments(flight.Segments.OrderBy(s => s.DepartureDate).ToList(), seg))
             };
 
             return filters;
         }
 
 
-        public static void GetFilteredFlights(List<Func<Flight, bool>> filters)
+        /// <summary>
+        /// Filters flights using passed in filters
+        /// </summary>
+        /// <param name="filters"></param>
+        /// <param name="flights"></param>
+        public static IEnumerable<Flight> GetFilteredFlights(IList<Func<Flight, bool>> filters, IList<Flight> flights)
         {
-            if (filters == null || !filters.Any()) return;
+            if (filters == null || flights == null) throw new InvalidOperationException("Invalid or null arguements passed in to GetFilteredFlights");
+            if (!flights.Any()) return new List<Flight>();
+            if (!filters.Any()) return flights;
+            if (flights.Any(f => !f.Segments.Any())) throw new InvalidOperationException("Could not operate - flights found with no segments");
 
-            var flights = _flightBuilder.GetFlights();            
-
-            if(flights.Any(f => !f.Segments.Any())) throw new InvalidOperationException("Could not operate - flights found with no segments");
-
-            var filteredFlights = flights.GetFilteredItems(filters);
-            
-            PersistResults(filteredFlights);
+            return flights.GetFilteredItems(filters);
         }
 
-        private static bool CheckGroundStopTimeBetweenSegments(List<Segment> orderedSegments , Segment currentSegment)
+
+        /// <summary>
+        /// Checks to ensure ground stop time is satisfactory
+        /// </summary>
+        /// <param name="orderedSegments"></param>
+        /// <param name="currentSegment"></param>
+        /// <returns>If ground stop time is satisfactory</returns>
+        private static bool CheckGroundStopTimeBetweenSegments(List<Segment> orderedSegments, Segment currentSegment)
         {
             var currentIndex = orderedSegments.IndexOf(currentSegment);
 
@@ -72,6 +87,10 @@ namespace FlightFilterApp
             return timeSpentOnGround.TotalHours < 2;
         }
 
+        /// <summary>
+        /// persists results for evaluation
+        /// </summary>
+        /// <param name="filteredFlights"></param>
         private static void PersistResults(IEnumerable<Flight> filteredFlights)
         {
             var jsonSerialiser = new JavaScriptSerializer();
