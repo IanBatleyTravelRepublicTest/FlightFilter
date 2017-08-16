@@ -1,0 +1,10 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/FlightFilterApp/bin/Debug/FlightFilterApp.vshost.exe.config
+/FlightFilterApp/bin/Debug/FlightFilterApp.vshost.exe
+/FlightFilterApp/.vs/FlightFilterApp/v14/.suo
+/FlightFilterApp/bin/Debug/FlightFilterApp.vshost.exe.manifest
+/FlightFilterApp/obj/Debug
+/FlightFilterApp/bin/Debug
