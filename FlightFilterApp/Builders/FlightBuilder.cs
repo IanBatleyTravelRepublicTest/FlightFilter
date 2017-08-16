@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FlightFilterApp.Entities;
 
-namespace FlightFilterApp.FlightBuilder
+namespace FlightFilterApp.Builders
 {
     public class FlightBuilder
     {
@@ -16,29 +16,30 @@ namespace FlightFilterApp.FlightBuilder
 
         public IList<Flight> GetFlights()
         {
+
             return new List<Flight>
                        {
                            //A normal flight with two hour duration
-			               CreateFlight(_threeDaysFromNow, _threeDaysFromNow.AddHours(2)),
+			               CreateFlight("A normal flight with two hour duration", _threeDaysFromNow, _threeDaysFromNow.AddHours(2)),
 
                            //A normal multi segment flight
-			               CreateFlight(_threeDaysFromNow, _threeDaysFromNow.AddHours(2), _threeDaysFromNow.AddHours(3), _threeDaysFromNow.AddHours(5)),
+			               CreateFlight("A normal multi segment flight", _threeDaysFromNow, _threeDaysFromNow.AddHours(2), _threeDaysFromNow.AddHours(3), _threeDaysFromNow.AddHours(5)),
                            
                            //A flight departing in the past
-                           CreateFlight(_threeDaysFromNow.AddDays(-6), _threeDaysFromNow),
+                           CreateFlight("A flight departing in the past",_threeDaysFromNow.AddDays(-6), _threeDaysFromNow),
 
                            //A flight that departs before it arrives
-                           CreateFlight(_threeDaysFromNow, _threeDaysFromNow.AddHours(-6)),
-
+                           CreateFlight("A flight that departs before it arrives", _threeDaysFromNow, _threeDaysFromNow.AddHours(-6)),
+                           
                            //A flight with more than two hours ground time
-                           CreateFlight(_threeDaysFromNow, _threeDaysFromNow.AddHours(2), _threeDaysFromNow.AddHours(5), _threeDaysFromNow.AddHours(6)),
+                           CreateFlight("A flight with more than two hours ground time", _threeDaysFromNow, _threeDaysFromNow.AddHours(2), _threeDaysFromNow.AddHours(5), _threeDaysFromNow.AddHours(6)),
 
-                            //Another flight with more than two hours ground time
-                           CreateFlight(_threeDaysFromNow, _threeDaysFromNow.AddHours(2), _threeDaysFromNow.AddHours(3), _threeDaysFromNow.AddHours(4), _threeDaysFromNow.AddHours(6), _threeDaysFromNow.AddHours(7))
+                           //Another flight with more than two hours ground time
+                           CreateFlight("Another flight with more than two hours ground time", _threeDaysFromNow, _threeDaysFromNow.AddHours(2), _threeDaysFromNow.AddHours(3), _threeDaysFromNow.AddHours(4), _threeDaysFromNow.AddHours(6), _threeDaysFromNow.AddHours(7))
                        };
         }
 
-        private static Flight CreateFlight(params DateTime[] dates)
+        private static Flight CreateFlight(string name, params DateTime[] dates)
         {
             if (dates.Length % 2 != 0) throw new ArgumentException("You must pass an even number of dates,", "dates");
 
@@ -49,7 +50,7 @@ namespace FlightFilterApp.FlightBuilder
                                               (departureDate, arrivalDate) =>
                                               new Segment { DepartureDate = departureDate, ArrivalDate = arrivalDate }).ToList();
 
-            return new Flight { Segments = segments };
+            return new Flight { Segments = segments, Name = name};
         }
     }
 }
